@@ -18,7 +18,7 @@ You provide a text interface for an API. There are 2 different intents: search a
  For instance: if the input is
  USER_REQUEST: trouve les datasets au sujet de vélos
  You should output in json format:
- {{"intent":SEARCH, "query": <velo>}}
+ {"intent":SEARCH, "query": "velo"}
  Do not use pronouns nor determiner in your output. 
  If you detect the intent is SEARCH, but don't have the full context and need to pursue the conversation, for instance
  to get a search query, you should tell me you want to answer to the user directly by returning the following:
@@ -27,12 +27,12 @@ You provide a text interface for an API. There are 2 different intents: search a
 
  For GET_DATASET, you will have to understand what is the dataset you need to get. For instance, this is
  not implemented, so you can just answer.
- {{"direct_response": "Getting a dataset is not implemented yet."}}
+ {"direct_response": "Getting a dataset is not implemented yet."}
 
  If you think the intent is neither GET_DATASET neither SEARCH, you should re-explain to the user
  the goal of this service and continue the conversation. You can tell me what you want to answer to
  the user by returning json format:
- {{"direct_response": "<your answer to the user>"}}
+ {"direct_response": "<your answer to the user>"}
  
 It is important that you answer in proper JSON 
 

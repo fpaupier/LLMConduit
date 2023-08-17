@@ -3,12 +3,14 @@ import os
 
 from dotenv import load_dotenv
 from spellbook import TEMPLATE
+import requests
 
 import openai
 
 load_dotenv()  # take environment variables from .env.
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY","")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
 
 class OpenAIChat:
     def __init__(self, api_key):
@@ -46,48 +48,30 @@ def process_intent(param):
     print(param.intent)
 
 
-def parse_llm_output(llm_output: str):
-    print(f"Parsing llm output... ")
-    try:
-        json_output = json.loads(llm_output)
-        if "intent" in json_output.keys():
-            process_intent()
-        elif "direct_response" in json_output.keys():
-            print(json_output["direct_response"])
-    except ValueError as e:
-        pass  # invalid json
-    else:
-        pass  # valid json
-
-    return
-
-user_input = "Donne moi des jeux de données sur la consommation des ménages "
-
 def main() -> None:
     chat_session = OpenAIChat(api_key=OPENAI_API_KEY)
-    response = chat_session.chat(user_message=user_input)
-    print(f"AI: {response}")
-
-    ##
-    #
-    # llm = OpenAI(openai_api_key=OPENAI_API_KEY)
-    # prompt = PromptTemplate(template=template, input_variables=["question"])
-    # llm_chin = LLMChain(prompt=prompt, llm=llm)
-    # questioan = "USER_REQUEST: Donne moi un dataset sur la consommation des ménages français"
-    # answer = llm_chain.run(question)
-    # print(answer)
-    # parse_llm_output(answer)
-    # res = llm.generate(["Propose me a brief history of France's medieval history in ten lines. Use the tone of a medieval bard and use rhymes"])
-    # print(res.generations[0])
-
-
+    do_stop = False
+    message = "Je suis un assistant de data gouv. Je peux trouver des datasets.\n"
+    while not do_stop:
+        user_input = input(message)
+        response = chat_session.chat(user_message=user_input)
+        # todo try catch  llm output parsing
+        llm_output: dict = json.loads(response)
+        if "intent" in llm_output.keys():
+            message = process_intent(llm_output)
+            # for the moment: no memory between processed intents
+            chat_session.clean_history()
+        elif "direct_response" in llm_output.keys():
+            message = llm_output["direct_response"]
+            continue
+        else:
+            raise NotImplementedError
 
 
 INTENT_TO_API_MAP = {
     "SEARCH": 'https://www.data.gouv.fr/api/1/datasets/?q=QUERY_TERM&page=1&page_size=20',
     "GET_DATASET": 'https://www.data.gouv.fr/api/1/datasets/DATASET_ID/',
 }
-
 
 if __name__ == "__main__":
     main()
