@@ -44,8 +44,28 @@ class OpenAIChat:
         return f"User: {user_message}"
 
 
-def process_intent(param):
-    print(param.intent)
+# pre-condition : llm_input contains "intent"
+def process_intent(llm_output) -> str:
+    intent = llm_output["intent"]
+    if intent == "SEARCH":
+        raw_query: str = llm_output["query"]
+        query_elements = raw_query.split(" ")
+        # curl -X 'GET' 'https://www.data.gouv.fr/api/1/datasets/?q=exports&q=armes&q=francais'
+        # todo try catch la request
+        response = requests.get(url=f"https://www.data.gouv.fr/api/1/datasets",
+                                params={"q": query_elements})
+        if response.ok:
+            datasets = response.json()
+            #  todo simplify simple_datasets
+            simple_datasets = datasets
+            return f"Here are the datasets we found: {simple_datasets}"
+        else:
+            return "Sorry, I'm having issues searching the dataset database"
+        # do something
+    elif intent == "GET_DATASET":
+        raise NotImplementedError("failure of gpt to respect spec")
+    else:
+        return f"Unimplemented intent: {intent}"
 
 
 def main() -> None:
