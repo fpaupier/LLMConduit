@@ -1,16 +1,50 @@
 import json
 import os
 
-from langchain.llms import OpenAI
-from langchain import PromptTemplate, LLMChain
 from dotenv import load_dotenv
 from spellbook import template
+
+import openai
 
 load_dotenv()  # take environment variables from .env.
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY","")
 
-user_input = "Help me use the "
+class OpenAIChat:
+    def __init__(self, api_key):
+        self.history = [OpenAIChat._user_query(TEMPLATE)]
+        openai.api_key = api_key
+
+    def clean_history(self):
+        self.history = [OpenAIChat._user_query(TEMPLATE)]
+
+    def chat(self, user_message: str) -> str:
+        # Append user message to history
+        self.history.append(self._user_query(user_message))
+        # Prepare the prompt
+        prompt = "\n".join(self.history) + "\nAI:"
+
+        # Send to OpenAI API
+        response = openai.Completion.create(
+            engine="text-davinci-002",  # Choose the model you prefer
+            prompt=prompt,
+            max_tokens=200  # Adjust based on your needs
+        )
+
+        ai_response = response.choices[0].text.strip()
+        # Append AI's response to history
+        self.history.append(f"AI: {ai_response}")
+
+        return ai_response
+
+    @staticmethod
+    def _user_query(user_message):
+        return f"User: {user_message}"
+
+
+def process_intent(param):
+    print(param.intent)
+
 
 def parse_llm_output(llm_output: str):
     print(f"Parsing llm output... ")
@@ -25,14 +59,22 @@ def parse_llm_output(llm_output: str):
 
     return
 
+user_input = "Donne moi des jeux de données sur la consommation des ménages "
+
 def main() -> None:
-    llm = OpenAI(openai_api_key=OPENAI_API_KEY)
-    prompt = PromptTemplate(template=template, input_variables=["question"])
-    llm_chain = LLMChain(prompt=prompt, llm=llm)
-    question = "USER_REQUEST: Donne moi un dataset sur la consommation des ménages français"
-    answer = llm_chain.run(question)
-    print(answer)
-    parse_llm_output(answer)
+    chat_session = OpenAIChat(api_key=OPENAI_API_KEY)
+    response = chat_session.chat(user_message=user_input)
+    print(f"AI: {response}")
+
+    ##
+    #
+    # llm = OpenAI(openai_api_key=OPENAI_API_KEY)
+    # prompt = PromptTemplate(template=template, input_variables=["question"])
+    # llm_chin = LLMChain(prompt=prompt, llm=llm)
+    # questioan = "USER_REQUEST: Donne moi un dataset sur la consommation des ménages français"
+    # answer = llm_chain.run(question)
+    # print(answer)
+    # parse_llm_output(answer)
     # res = llm.generate(["Propose me a brief history of France's medieval history in ten lines. Use the tone of a medieval bard and use rhymes"])
     # print(res.generations[0])
 
