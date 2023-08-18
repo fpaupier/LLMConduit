@@ -40,12 +40,12 @@ class OpenAIChat:
         return ai_response
 
     @staticmethod
-    def _user_query(user_message):
+    def _user_query(user_message: str) -> str:
         return f"User: {user_message}"
 
 
 # pre-condition : llm_input contains "intent"
-def process_intent(llm_output) -> str:
+def process_intent(llm_output: dict) -> str:
     intent = llm_output["intent"]
     if intent == "SEARCH":
         raw_query: str = llm_output["query"]
@@ -70,28 +70,36 @@ def process_intent(llm_output) -> str:
 
 def main() -> None:
     chat_session = OpenAIChat(api_key=OPENAI_API_KEY)
+    message = ("Hello! Vous voulez explorer le catalogue des données publiques sur data.gouv.fr? Je suis là pour vous "
+               "aider.\nQue désirez-vous faire?\n")
     do_stop = False
-    message = "Je suis un assistant de data gouv. Je peux trouver des datasets.\n"
     while not do_stop:
         user_input = input(message)
         response = chat_session.chat(user_message=user_input)
-        # todo try catch  llm output parsing
-        llm_output: dict = json.loads(response)
+        llm_output: dict = parse_llm_output(response)
         if "intent" in llm_output.keys():
             message = process_intent(llm_output)
             # for the moment: no memory between processed intents
             chat_session.clean_history()
         elif "direct_response" in llm_output.keys():
             message = llm_output["direct_response"]
-            continue
-        else:
-            raise NotImplementedError
+        elif "error" in llm_output.keys():
+            message = "Je n'ai pas compris votre question. Popuvez-vous ré-essayer?"
 
 
-INTENT_TO_API_MAP = {
-    "SEARCH": 'https://www.data.gouv.fr/api/1/datasets/?q=QUERY_TERM&page=1&page_size=20',
-    "GET_DATASET": 'https://www.data.gouv.fr/api/1/datasets/DATASET_ID/',
-}
+def parse_llm_output(llm_output: str) -> dict:
+    """
+    :param llm_output: the output of the LLM that is expected to be a valid JSON
+    :return: proper python dictionary based on the llm output.
+    """
+    try:
+        json_output = json.loads(llm_output)
+        return json_output
+    except json.decoder.JSONDecodeError:
+        return {"error": "failed to parse llm output"}
+    except Exception as e:
+        return {"error": f"unknown error {e}"}
+
 
 if __name__ == "__main__":
     main()
