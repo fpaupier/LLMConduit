@@ -7,6 +7,8 @@ import requests
 
 import openai
 
+from src.utils import fetch_data_with_retries
+
 load_dotenv()  # take environment variables from .env.
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -50,13 +52,9 @@ def process_intent(llm_output: dict) -> str:
     if intent == "SEARCH":
         raw_query: str = llm_output["query"]
         query_elements = raw_query.split(" ")
-        # curl -X 'GET' 'https://www.data.gouv.fr/api/1/datasets/?q=exports&q=armes&q=francais'
-        # todo try catch la request
-        response = requests.get(url=f"https://www.data.gouv.fr/api/1/datasets",
-                                params={"q": query_elements})
-        if response.ok:
-            datasets = response.json()
-            #  todo simplify simple_datasets
+        params = {"q": query_elements}
+        success, datasets = fetch_data_with_retries(url="https://www.data.gouv.fr/api/1/datasets",params=params)
+        if success:
             simple_datasets = datasets
             return f"Here are the datasets we found: {simple_datasets}"
         else:
@@ -84,7 +82,7 @@ def main() -> None:
         elif "direct_response" in llm_output.keys():
             message = llm_output["direct_response"]
         elif "error" in llm_output.keys():
-            message = "Je n'ai pas compris votre question. Popuvez-vous ré-essayer?"
+            message = "Je n'ai pas compris votre question. Pouvez-vous ré-essayer?"
 
 
 def parse_llm_output(llm_output: str) -> dict:
